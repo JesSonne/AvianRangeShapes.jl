@@ -1,7 +1,6 @@
-#add https://github.com/mkborregaard/SpreadingDye.jl
-using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images, JLD2, SkipNan, VerySimpleRasters
 
-include("functions.jl")
+using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images, JLD2, SkipNan, VerySimpleRasters
+using AvianRangeShapes
 
 #loading geographical domain
 dd = Raster("Data files/sf1_mainland.tif")  
