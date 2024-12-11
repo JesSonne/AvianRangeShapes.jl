@@ -1,7 +1,8 @@
 #the outward_facing function to run each null model
 function null_models(example_species="Phlogophilus harterti", # state name of example species
     Anal_nam="nm4",# state which of the four null models (nm1,nm2,nm3, or nm4)
-    rs_std=false # should the null model use the standardized range size (true) or the empirical range size (false)
+    rs_std=false, # should the null model use the standardized range size (true) or the empirical range size (false)
+    nrep=10 # nuber of repititions
     )
 
     i=findall(nam.==example_species)
@@ -82,32 +83,34 @@ function null_models(example_species="Phlogophilus harterti", # state name of ex
 
     end
 
+    output=Any[]
+    for i in 1:nrep
+
+        #running the spreading dye algorithm for each range patch
+        sd_out=copy(zero)
+        for x in 1:length(groups)
+            sd_sub=copy(zero)
+            sd_sub[groups[x]].=true
+            ppo=Tuple.(collect(CartesianIndices(sd_sub))[sd_sub[:]])
+            rangesize = group_size[x]
+            start=(rand(ppo,1))[1] # select random starting posision
+            sd = spreading_dye(rangesize, dom, start) 
+            id=findall(sd[:].==true)
+            sd_out[id].=true
+        end
 
 
-    #running the spreading dye algorithm for each range patch
-    sd_out=copy(zero)
-    for x in 1:length(groups)
-        sd_sub=copy(zero)
-        sd_sub[groups[x]].=true
-        ppo=Tuple.(collect(CartesianIndices(sd_sub))[sd_sub[:]])
-        rangesize = group_size[x]
-        start=(rand(ppo,1))[1] # select random starting posision
-        sd = spreading_dye(rangesize, dom, start) 
-        id=findall(sd[:].==true)
-        sd_out[id].=true
+        #checking for overlaps in the simulated range patches (i.e. if simulated range size is less than the empirical)
+        ids=findall(sd_out[:].==true)    
+        rs_check=total_rangesize-length(ids)
+
+        if rs_check > 0
+            sd_out=expand_spreading(sd_out,rs_check,dom)
+        end    
+        ids=findall(sd_out[:].==true)
+        push!(output,ids)     
     end
-
-
-    #checking for overlaps in the simulated range patches (i.e. if simulated range size is less than the empirical)
-    ids=findall(sd_out[:].==true)    
-    rs_check=total_rangesize-length(ids)
-
-    if rs_check > 0
-        sd_out=expand_spreading(sd_out,rs_check,dom)
-    end    
-    ids=findall(sd_out[:].==true)     
-    ids
-
+    output
 end
 
 
