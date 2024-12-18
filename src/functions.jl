@@ -2,11 +2,12 @@
 function null_models(example_species="Phlogophilus harterti", # state name of example species
     Anal_nam="nm4",# state which of the four null models (nm1,nm2,nm3, or nm4)
     rs_std=false, # should the null model use the standardized range size (true) or the empirical range size (false)
-    nrep=10 # nuber of repititions
+    dom=copy(dom_master)
+    nrep=10 # nuber of repetitions
     )
 
     i=findall(nam.==example_species)
-    dom=copy(dom_master)
+    
 
 
 
@@ -227,4 +228,21 @@ function expand_spreading(georange::AbstractMatrix{Bool}, add_cells::Int, dom::A
         grow!(georange, edges, dom, algo)
     end
     georange
+end
+
+function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{Bool}, algo::Symbol; ignore_domain = false)
+    newcell = isempty(edges) ? pick_random(georange) : first(rand(edges))
+    while georange[newcell...]
+        isempty(edges) && push!(edges, jump(georange, dom, algo)) # allows for patchy ranges
+        edge, newcell = rand(edges)
+        pop!(edges, (edge, newcell))
+    end
+    georange[newcell...] = true
+    for nb in algos[algo]
+        neighbor = newcell .+ nb
+        if within_edges(dom, neighbor) && (ignore_domain || dom[neighbor...]) && !georange[neighbor...]
+            push!(edges, (newcell, neighbor))
+        end
+    end
+    newcell
 end
