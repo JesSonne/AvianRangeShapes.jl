@@ -1,6 +1,6 @@
 module AvianRangeShapes
 
-using SpreadingDye
+import SpreadingDye
 include("functions.jl")
 
 export null_models
