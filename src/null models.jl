@@ -2,6 +2,7 @@
 using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images, JLD2, SkipNan, VerySimpleRasters
 using AvianRangeShapes
 
+Pkg.instantiate()
 
 cd("/Users/jespersonne/Documents/GitHub/Avian_Range_Shapes")
 
