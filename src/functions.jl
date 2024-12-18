@@ -1,13 +1,15 @@
 #the outward_facing function to run each null model
-function null_models(example_species="Phlogophilus harterti", # state name of example species
-    Anal_nam="nm4",# state which of the four null models (nm1,nm2,nm3, or nm4)
-    rs_std=false, # should the null model use the standardized range size (true) or the empirical range size (false)
-    dom=copy(dom_master)
-    nrep=10 # nuber of repetitions
+function null_models(
+    example_species::String, # state name of example species
+    Anal_nam::String,# state which of the four null models (nm1,nm2,nm3, or nm4)
+    geo_range::Dict, #grid cell ids comprising the species empirical range
+    rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
+    dom::Any, #biogeographical domain
+    top::Any, #topographical raster
+    elv::DataFrame, #data frame with the species' elevational range limits
+    formated_rs::DataFrame, #data frame with standardized range sizes (only used if rs_std=true)
+    nrep::Int64 # nuber of repetitions
     )
-
-    i=findall(nam.==example_species)
-    
 
 
 
@@ -23,9 +25,11 @@ function null_models(example_species="Phlogophilus harterti", # state name of ex
     #list of grid cells outside the geographic domain
     nas=findall(dom[:].==false) 
 
+    #empty raster object
+    zero=copy(dom);zero[:].=false
 
-    #grid cells comprising the species empirical range
-    ab=dis_elv[i][1]
+    #grid cell ids comprising the species' empirical range
+    ab=geo_range[example_species]
 
 
     #constructing raster of the species empirical range
