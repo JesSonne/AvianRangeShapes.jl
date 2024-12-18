@@ -2,5 +2,5 @@ module AvianRangeShapes
 
 include("functions.jl")
 
-export AvianRangeShapes
+export null_models
 end
