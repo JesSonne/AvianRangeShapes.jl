@@ -3,7 +3,7 @@ using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images
 using AvianRangeShapes
 
 
-#cd("/Users/jespersonne/Documents/GitHub/Avian_Range_Shapes")
+cd("/Users/jespersonne/Documents/GitHub/Avian_Range_Shapes")
 
 #loading geographical domain
 dd = Raster("data/sf1_mainland.tif")  
@@ -15,6 +15,8 @@ all_true=copy(dom_master)
 all_true[:].=true
 nas=findall(dom[:].==false) 
 
+#empty raster object
+zero_na=copy(dd);zero_na[:].=NaN
 
 
 #loading topographical raster
