@@ -100,7 +100,7 @@ function null_models(
             ppo=Tuple.(collect(CartesianIndices(sd_sub))[sd_sub[:]])
             rangesize = group_size[x]
             start=(rand(ppo,1))[1] # select random starting posision
-            sd = spreading_dye(rangesize, dom, start) 
+            sd = SpreadingDye.spreading_dye(rangesize, dom, start) 
             id=findall(sd[:].==true)
             sd_out[id].=true
         end
