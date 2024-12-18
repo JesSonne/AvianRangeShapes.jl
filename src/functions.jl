@@ -33,7 +33,7 @@ function null_models(
 
 
     #constructing raster of the species empirical range
-    emp=copy(dd)
+    emp=Float64.(dom)
     emp.=NaN
     emp[ab].=true
     emp2= (!isnan).(emp)  
@@ -172,7 +172,7 @@ function join_neighbours(groups;max_dist::Int64=5,min_prop::Float64=0.1)
     ## convert raster ID's to matrix coordinates
     point=Any[]
     for t in 1:length(groups)
-        zz=copy(dd);zz.=NaN;zz[groups[t]].=1;push!(point,Tuple.(collect(CartesianIndices(zz))[isfinite.(zz)]))
+        zz=copy(Float64.(dom));zz.=NaN;zz[groups[t]].=1;push!(point,Tuple.(collect(CartesianIndices(zz))[isfinite.(zz)]))
     end
 
     #construct neigbborhood matrix
