@@ -6,8 +6,8 @@ function null_models(
     rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
     dom::Any, #biogeographical domain
     top::Any, #topographical raster
-    elv::DataFrame, #data frame with the species' elevational range limits
-    formated_rs::DataFrame, #data frame with standardized range sizes (only used if rs_std=true)
+    elv::Any, #data frame with the species' elevational range limits
+    formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64 # nuber of repetitions
     )
 
