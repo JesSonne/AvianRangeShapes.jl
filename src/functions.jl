@@ -1,6 +1,3 @@
-using Pkg
-Pkg.add(url="https://github.com/mkborregaard/SpreadingDye.jl")
-
 
 #the outward_facing function to run each null model
 function null_models(
