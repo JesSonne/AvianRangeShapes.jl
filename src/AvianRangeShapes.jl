@@ -1,5 +1,5 @@
 module AvianRangeShapes
-
+using(Pkg)
 
 include("functions.jl")
 Pkg.instantiate()
