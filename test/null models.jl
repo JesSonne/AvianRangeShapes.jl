@@ -1,40 +1,24 @@
 
-using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images, JLD2, SkipNan, VerySimpleRasters
+using ArchGDAL, Rasters, DataFrames, Plots, JLD2
 using AvianRangeShapes
 
-Pkg.instantiate()
-
-cd("/Users/jespersonne/Documents/GitHub/Avian_Range_Shapes")
-
 #loading geographical domain
-dd = Raster("data/sf1_mainland.tif")  
-dom = dd 
-dom=dom./dom
-dom=dom.==1
-dom_master=copy(dom)
-all_true=copy(dom_master)
-all_true[:].=true
-nas=findall(dom[:].==false) 
-
-#empty raster object
-zero_na=copy(dd);zero_na[:].=NaN
-
+dd = Raster("../data/sf1_mainland.tif")  
+dom_master = .!isnan.(dd)
 
 #loading topographical raster
-top=Raster("data/top_q_proj.tif")
-top=resample(top;to=dom)
-
+top=resample(Raster("../data/top_q_proj.tif"); to = dom_master)
 
 #loading species elevational range limits
-elv=load_object("data/elevational range limits.jld2")
+elv=load_object("../data/elevational range limits.jld2")
 
 #loading the geographic geographic ranges of six example species
-dis_elv=load_object("data/bird ranges.jld2")
+dis_elv=load_object("../data/bird ranges.jld2")
 nam=["Acropternis orthonyx","Aglaeactis castelnaudii","Coeligena lutetiae","Diglossa mystacalis","Phlogophilus harterti","Scytalopus griseicollis"]
 geo_range = Dict(zip(nam, dis_elv))
 
 #loading standardized range sizes
-formated_rs=load_object("data/standardized_range_sizes.jld2")
+formated_rs=load_object("../data/standardized_range_sizes.jld2")
 
 ############################ run the null model 
 
@@ -44,7 +28,8 @@ nrep=10 # nuber of repetitions
 
 
 #### empirical range
-map_emp=copy(zero_na);map_emp[dis_elv[findall(nam.==example_species)][1]].=1
+map_emp = falses(dims(dom_master))
+map_emp[geo_range[example_species]] .= true
 map_emp=Rasters.trim(map_emp,pad=10)
 bd=bounds(map_emp)
 plot(map_emp)
