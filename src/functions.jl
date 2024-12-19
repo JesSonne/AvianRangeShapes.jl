@@ -1,3 +1,15 @@
+using SpreadingDye, NearestNeighbors, SkipNan
+
+
+   #filtering the geographic domain by the species elevational range limits     
+function update_dom_to_elevation!(dom, species, elv, top) 
+    if !species in elv.Species
+        warn("No elevational range data found for $(species)")
+    else
+        sp_elv_sub=elv[elv.Species.==example_species,:]
+        dom[top[Band=1] .> sp_elv_sub.Maximu_elevation .|| top[Band=2] .< sp_elv_sub.minimum_elevation] .= false
+    end
+end
 
 #the outward_facing function to run each null model
 function null_models(
@@ -5,22 +17,17 @@ function null_models(
     Anal_nam::String,# state which of the four null models (nm1,nm2,nm3, or nm4)
     geo_range::Dict, #grid cell ids comprising the species empirical range
     rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
-    dom::Any, #biogeographical domain
+    dom_master::Any, #biogeographical domain
     top::Any, #topographical raster
     elv::Any, #data frame with the species' elevational range limits
     formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64 # nuber of repetitions
     )
 
-
-
+    dom = copy(dom_master)
     #filtering the geographic domain by the species elevational range limits     
     if Anal_nam in ["nm2","nm4"]
-        if example_species in elv.Species
-            sp_elv_sub=elv[elv.Species.==example_species,:]
-            elv_rm=[findall(top[Band=1][:].>sp_elv_sub.Maximu_elevation);findall(top[Band=2][:].<sp_elv_sub.minimum_elevation)]
-            dom[elv_rm].=false
-        end   
+        update_dom_to_elevation!(dom, species, elv, top)
     end
 
     #list of grid cells outside the geographic domain
