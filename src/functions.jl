@@ -1,94 +1,58 @@
-
-#the outward_facing function to run each null model
-function null_models(
-    example_species::String, # state name of example species
-    Anal_nam::String,# state which of the four null models (nm1,nm2,nm3, or nm4)
-    geo_range::Dict, #grid cell ids comprising the species empirical range
-    rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
-    dom::Any, #biogeographical domain
-    top::Any, #topographical raster
-    elv::Any, #data frame with the species' elevational range limits
-    formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
-    nrep::Int64 # nuber of repetitions
-    )
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters
 
 
-
-    #filtering the geographic domain by the species elevational range limits     
-    if Anal_nam in ["nm2","nm4"]
-        if example_species in elv.Species
-            sp_elv_sub=elv[elv.Species.==example_species,:]
-            elv_rm=[findall(top[Band=1][:].>sp_elv_sub.Maximu_elevation);findall(top[Band=2][:].<sp_elv_sub.minimum_elevation)]
-            dom[elv_rm].=false
-        end   
+   #filtering the geographic domain by the species elevational range limits     
+function update_dom_to_elevation!(dom, species, elv, top) 
+    if !(species in elv.Species)
+        warn("No elevational range data found for $(species)")
+    else
+        sp_elv_sub=elv[elv.Species.==species,:]
+        dom[top[Band=1] .> sp_elv_sub.Maximu_elevation .|| top[Band=2] .< sp_elv_sub.minimum_elevation] .= false
+        
     end
+end
 
-    #list of grid cells outside the geographic domain
-    nas=findall(dom[:].==false) 
+#Identify groups of isolated range patches 
+function find_groups(emp2,
+    max_dist=5, #minimum patch size relative to the species’ largest patch 
+    min_prop=0.1) #minimum distance between range patches) 
+   
+    #Identify groups of isolated range patches 
+   groups = collect_groups(emp2)
+   groups=groups[findall(length.(groups).>0)]
 
-    #empty raster object
-    zero=copy(dom);zero[:].=false
+   #### algorithm treating tiny range patches as extensions of the agacent larger coherent range rather than independent range patches
+   groups=join_neighbours(groups; 
+   max_dist, #minimum patch size relative to the species’ largest patch 
+   min_prop) #minimum distance between range patches
 
-    #grid cell ids comprising the species' empirical range
-    ab=geo_range[example_species]
+   groups
+end
 
-
-    #constructing raster of the species empirical range
-    emp=Float64.(dom)
-    emp.=NaN
-    emp[ab].=true
-    emp2= (!isnan).(emp)  
-
-    if Anal_nam in ["nm1","nm2"]
-        group_size=[length(ab)]
-        groups=[ab]
+#stadardizing range sizes of groups
+function update_group_size!(new_range,total_rangesize,group_size)        
+    if new_range<total_rangesize 
+        for x in 1:(total_rangesize-new_range)
+            subt=sample(collect(1:length(group_size)),Weights(group_size)) 
+            group_size[subt]=group_size[subt]-1  
+        end
+    end 
+    
+    #if the standardized range size is larger than the empirical, randomly add grid cells from the groups in stepwise fashion, weighted by the patch size
+    #i.e. large patches have greater chance of beeing modified by the standardization
+    if new_range>total_rangesize 
+        for x in 1:(new_range-total_rangesize)
+            subt=sample(collect(1:length(group_size)),Weights(group_size)) 
+            group_size[subt]=group_size[subt]+1  
+        end
+    end 
+    
     end
+    
 
-    if Anal_nam in ["nm3","nm4"]
-        #Identify groups of isolated range patches 
-        groups = collect_groups(emp2)
-        groups=groups[findall(length.(groups).>0)]
-
-        #### algorithm treating tiny range patches as extensions of the agacent larger coherent range rather than independent range patches
-        groups=join_neighbours(groups; 
-        max_dist=5, #minimum patch size relative to the species’ largest patch 
-        min_prop=0.1) #minimum distance between range patches
-
-
-        #extracting the size of each patch and the entire range
-        group_size=length.(groups)
-    end    
-
+#compiling arguments and running the spreading die model nrep times
+function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
     total_rangesize=sum(group_size)
-
-    ######### ## standardizing the range size frequency distribution
-    if rs_std
-        #if the standardized range size is smaller than the empirical, randomly subtract grid cells from the groups in stepwise fashion, weighted by the patch size
-        #i.e. large patches have greater chance of beeing modified by the standardization
-        new_range=formated_rs[formated_rs.nam.==example_species,:rank_range][1]
-        if new_range<total_rangesize 
-            for x in 1:(total_rangesize-new_range)
-                subt=sample(collect(1:length(group_size)),Weights(group_size)) 
-                group_size[subt]=group_size[subt]-1  
-            end
-        end 
-
-        #if the standardized range size is larger than the empirical, randomly add grid cells from the groups in stepwise fashion, weighted by the patch size
-        #i.e. large patches have greater chance of beeing modified by the standardization
-        if new_range>total_rangesize 
-            for x in 1:(new_range-total_rangesize)
-                subt=sample(collect(1:length(group_size)),Weights(group_size)) 
-                group_size[subt]=group_size[subt]+1  
-            end
-        end 
-
-        total_rangesize =new_range
-        ppo=findall(group_size.>0)
-        group_size=group_size[ppo]
-        groups=groups[ppo]
-
-    end
-
     output=Any[]
     for i in 1:nrep
 
@@ -116,7 +80,85 @@ function null_models(
         ids=findall(sd_out[:].==true)
         push!(output,ids)     
     end
+
     output
+end
+    
+
+
+#the outward_facing function to run each null model
+function null_models(
+    species::String, # state name of example species
+    Anal_nam::String,# state which of the four null models (nm1,nm2,nm3, or nm4)
+    geo_range::Dict, #grid cell ids comprising the species empirical range
+    rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
+    dom_master::Any, #biogeographical domain
+    top::Any, #topographical raster
+    elv::Any, #data frame with the species' elevational range limits
+    formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
+    nrep::Int64 # nuber of repetitions
+    )
+
+    dom = copy(dom_master)
+    #filtering the geographic domain by the species elevational range limits     
+    if Anal_nam in ["nm2","nm4"]
+        update_dom_to_elevation!(dom, species, elv, top)
+    end
+
+    #list of grid cells outside the geographic domain
+    nas=findall(dom[:].==false) 
+
+    #empty raster object
+    zero=copy(dom);zero[:].=false
+
+    #grid cell ids comprising the species' empirical range
+    ab=geo_range[species]
+
+
+    #constructing raster of the species empirical range
+    emp=Float64.(dom)
+    emp.=NaN
+    emp[ab].=true
+    emp2= (!isnan).(emp)  
+
+    if Anal_nam in ["nm1","nm2"]
+        group_size=[length(ab)]
+        groups=[ab]
+
+  
+    end
+
+    if Anal_nam in ["nm3","nm4"]
+        groups=find_groups(emp2)
+    
+        #extracting the size of each patch and the entire range
+        group_size=length.(groups)
+    
+    end    
+
+    total_rangesize=sum(group_size)
+
+    ######### ## standardizing the range size frequency distribution
+    if rs_std
+        #if the standardized range size is smaller than the empirical, randomly subtract grid cells from the groups in stepwise fashion, weighted by the patch size
+        #i.e. large patches have greater chance of beeing modified by the standardization
+        new_range=formated_rs[formated_rs.nam.==species,:rank_range][1]
+        
+        update_group_size!(new_range,total_rangesize,group_size)    
+        println(group_size)
+
+        total_rangesize =new_range
+        ppo=findall(group_size.>0)
+        
+        group_size=group_size[ppo]
+
+        groups=groups[ppo]
+
+    end
+
+   Run_SpreadingDye(groups,group_size,dom,nrep,zero)
+
+
 end
 
 
@@ -250,4 +292,26 @@ function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{B
         end
     end
     newcell
+end
+
+
+
+function prep_map(res_nm,dom=dd;trim_map=true,crop_to_ext=nothing)
+ 
+    map_nm=copy(dom)
+    map_nm[:].=NaN
+    map_nm[res_nm].=1
+ 
+    if crop_to_ext === nothing
+        if trim_map
+            map_nm=Rasters.trim(map_nm,pad=10)
+        end
+    end
+    
+    if !(crop_to_ext === nothing)
+        map_nm = Rasters.crop(map_nm, to=crop_to_ext)
+    end
+    
+   plot(map_nm)
+   map_nm
 end
