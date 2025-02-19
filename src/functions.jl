@@ -1,4 +1,4 @@
-using SpreadingDye, NearestNeighbors, SkipNan
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase
 
 
    #filtering the geographic domain by the species elevational range limits     
@@ -30,7 +30,7 @@ function find_groups(emp2,
 end
 
 #stadardizing range sizes of groups
-function std_RangeSizes(new_range,total_rangesize)        
+function update_group_size!(new_range,total_rangesize,group_size)        
     if new_range<total_rangesize 
         for x in 1:(total_rangesize-new_range)
             subt=sample(collect(1:length(group_size)),Weights(group_size)) 
@@ -47,13 +47,12 @@ function std_RangeSizes(new_range,total_rangesize)
         end
     end 
     
-    group_size
-    
     end
     
 
 #compiling arguments and running the spreading die model nrep times
 function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
+    total_rangesize=sum(group_size)
     output=Any[]
     for i in 1:nrep
 
@@ -145,7 +144,7 @@ function null_models(
         #i.e. large patches have greater chance of beeing modified by the standardization
         new_range=formated_rs[formated_rs.nam.==species,:rank_range][1]
         
-        group_size=std_RangeSizes(new_range,total_rangesize)     
+        update_group_size!(new_range,total_rangesize,group_size)    
         println(group_size)
 
         total_rangesize =new_range
