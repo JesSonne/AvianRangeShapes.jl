@@ -7,6 +7,7 @@ version = "1.0.0-DEV"
 NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 SkipNan = "aed68c70-c8b0-4309-8cd1-d392a74f991a"
 SpreadingDye = "d2fc507f-b8c3-4645-b292-ec755ef5f34e"
+ArchGDAL = "c9ce4bd3-c3d5-55b8-8973-c0e20141b8c3"
 
 [compat]
 julia = "1.6.7"
