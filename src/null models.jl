@@ -1,40 +1,24 @@
-
-using ArchGDAL,Rasters, DataFrames,Plots, SpreadingDye, NearestNeighbors, Images, JLD2, SkipNan, VerySimpleRasters
+using ArchGDAL, Rasters, DataFrames, Plots, JLD2
 using AvianRangeShapes
 
-Pkg.instantiate()
-
-cd("/Users/jespersonne/Documents/GitHub/Avian_Range_Shapes")
 
 #loading geographical domain
-dd = Raster("data/sf1_mainland.tif")  
-dom = dd 
-dom=dom./dom
-dom=dom.==1
-dom_master=copy(dom)
-all_true=copy(dom_master)
-all_true[:].=true
-nas=findall(dom[:].==false) 
-
-#empty raster object
-zero_na=copy(dd);zero_na[:].=NaN
-
+dd = Raster("../data/sf1_mainland.tif")  
+dom_master = .!isnan.(dd)
 
 #loading topographical raster
-top=Raster("data/top_q_proj.tif")
-top=resample(top;to=dom)
-
+top=resample(Raster("../data/top_q_proj.tif"); to = dom_master)
 
 #loading species elevational range limits
-elv=load_object("data/elevational range limits.jld2")
+elv=load_object("../data/elevational range limits.jld2")
 
 #loading the geographic geographic ranges of six example species
-dis_elv=load_object("data/bird ranges.jld2")
+dis_elv=load_object("../data/bird ranges.jld2")
 nam=["Acropternis orthonyx","Aglaeactis castelnaudii","Coeligena lutetiae","Diglossa mystacalis","Phlogophilus harterti","Scytalopus griseicollis"]
 geo_range = Dict(zip(nam, dis_elv))
 
 #loading standardized range sizes
-formated_rs=load_object("data/standardized_range_sizes.jld2")
+formated_rs=load_object("../data/standardized_range_sizes.jld2")
 
 ############################ run the null model 
 
@@ -44,10 +28,12 @@ nrep=10 # nuber of repetitions
 
 
 #### empirical range
-map_emp=copy(zero_na);map_emp[dis_elv[findall(nam.==example_species)][1]].=1
-map_emp=Rasters.trim(map_emp,pad=10)
-bd=bounds(map_emp)
+map_emp = falses(dims(dom_master))
+map_emp[geo_range[example_species]] .= true
+map_emp=prep_map(geo_range[example_species],trim_map=true)
+ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
+
 
 
 
@@ -66,9 +52,8 @@ res_nm1=null_models(example_species, # state name of example species
                     
 
 #plotting results from the null model iteration
-map_nm1=copy(zero_na);map_nm1[res_nm1[1]].=1 
-map_nm1=Rasters.crop(map_nm1,to=map_emp)
-plot(map_nm1)
+m1=prep_map(res_nm1[1],crop_to_ext=ex)
+plot(m1)
 
 
 #### running null model 2
@@ -84,9 +69,8 @@ res_nm2=null_models(example_species,
                     )
 
 #plotting results from the null model iteration
-map_nm2=copy(zero_na);map_nm2[res_nm2[1]].=1
-map_nm2=Rasters.crop(map_nm2,to=map_emp)
-plot(map_nm2)
+m2=prep_map(res_nm2[1],crop_to_ext=ex)
+plot(m2)
 
 
 #### running null model 3
@@ -95,14 +79,14 @@ res_nm3=null_models(example_species,
                     geo_range, 
                     rs_std, 
                     copy(dom_master), 
+                    top,
                     elv, 
                     formated_rs, 
                     nrep
                     )
 #plotting results from the null model iteration
-map_nm3=copy(zero_na);map_nm3[res_nm3[1]].=1
-map_nm3=Rasters.crop(map_nm3,to=map_emp)
-plot(map_nm3)
+m3=prep_map(res_nm3[1],crop_to_ext=ex)
+plot(m3)
 
 
 #### running null model 4
@@ -111,11 +95,12 @@ res_nm4=null_models(example_species,
                     geo_range, 
                     rs_std, 
                     copy(dom_master), 
+                    top,
                     elv, 
                     formated_rs, 
                     nrep
                     )
-                    #plotting results from the null model iteration
-map_nm4=copy(zero_na);map_nm4[res_nm4[1]].=1
-map_nm4=Rasters.crop(map_nm4,to=map_emp)
-plot(map_nm4)
+ #plotting results from the null model iteration
+ m4=prep_map(res_nm4[1],crop_to_ext=ex)
+ plot(m4)
+ 
