@@ -1,4 +1,4 @@
-using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters,Images
 
 
    #filtering the geographic domain by the species elevational range limits     
