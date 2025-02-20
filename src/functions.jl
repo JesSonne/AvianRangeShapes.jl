@@ -8,7 +8,6 @@ function update_dom_to_elevation!(dom, species, elv, top)
     else
         sp_elv_sub=elv[elv.Species.==species,:]
         dom[top[Band=1] .> sp_elv_sub.Maximu_elevation .|| top[Band=2] .< sp_elv_sub.minimum_elevation] .= false
-        
     end
 end
 
@@ -45,17 +44,14 @@ function update_group_size!(new_range,total_rangesize,group_size)
             subt=sample(collect(1:length(group_size)),Weights(group_size)) 
             group_size[subt]=group_size[subt]+1  
         end
-    end 
-    
-    end
-    
+    end     
+end
 
 #compiling arguments and running the spreading die model nrep times
 function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
     total_rangesize=sum(group_size)
     output=Any[]
     for i in 1:nrep
-
         #running the spreading dye algorithm for each range patch
         sd_out=copy(zero)
         for x in 1:length(groups)
@@ -65,19 +61,17 @@ function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
             rangesize = group_size[x]
             start=(rand(ppo,1))[1] # select random starting posision
             sd = SpreadingDye.spreading_dye(rangesize, dom, start) 
-            id=findall(sd[:].==true)
+            id=findall(sd[:])
             sd_out[id].=true
         end
 
-
-        #checking for overlaps in the simulated range patches (i.e. if simulated range size is less than the empirical)
-        ids=findall(sd_out[:].==true)    
-        rs_check=total_rangesize-length(ids)
+        #checking for overlaps in the simulated range patches (i.e. if simulated range size is less than the empirical) 
+        rs_check=total_rangesize-count(ids)
 
         if rs_check > 0
             sd_out=expand_spreading(sd_out,rs_check,dom)
         end    
-        ids=findall(sd_out[:].==true)
+        ids=findall(sd_out[:])
         push!(output,ids)     
     end
 
@@ -124,16 +118,12 @@ function null_models(
     if Anal_nam in ["nm1","nm2"]
         group_size=[length(ab)]
         groups=[ab]
-
-  
     end
 
     if Anal_nam in ["nm3","nm4"]
         groups=find_groups(emp2)
-    
         #extracting the size of each patch and the entire range
         group_size=length.(groups)
-    
     end    
 
     total_rangesize=sum(group_size)
@@ -157,8 +147,6 @@ function null_models(
     end
 
    Run_SpreadingDye(groups,group_size,dom,nrep,zero)
-
-
 end
 
 
@@ -294,24 +282,18 @@ function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{B
     newcell
 end
 
-
-
 function prep_map(res_nm,dom=dd;trim_map=true,crop_to_ext=nothing)
- 
     map_nm=copy(dom)
     map_nm[:].=NaN
     map_nm[res_nm].=1
- 
     if crop_to_ext === nothing
         if trim_map
             map_nm=Rasters.trim(map_nm,pad=10)
         end
     end
-    
     if !(crop_to_ext === nothing)
         map_nm = Rasters.crop(map_nm, to=crop_to_ext)
     end
-    
-   plot(map_nm)
-   map_nm
+    plot(map_nm)
+    map_nm
 end

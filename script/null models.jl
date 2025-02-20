@@ -26,16 +26,12 @@ example_species="Phlogophilus harterti" # name of one of the example species fro
 rs_std=false # should the null model use the standardized range size (true) or the empirical range size (false)
 nrep=10 # nuber of repetitions
 
-
 #### empirical range
 map_emp = falses(dims(dom_master))
 map_emp[geo_range[example_species]] .= true
 map_emp=prep_map(geo_range[example_species],trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
-
-
-
 
 #### running null model 1
 res_nm1=null_models(example_species, # state name of example species
@@ -48,8 +44,6 @@ res_nm1=null_models(example_species, # state name of example species
                     formated_rs, #data frame with standardized range sizes (only used if rs_std=true)
                     nrep # nuber of repetitions
                     )
-
-                    
 
 #plotting results from the null model iteration
 m1=prep_map(res_nm1[1],crop_to_ext=ex)
