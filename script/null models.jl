@@ -36,17 +36,16 @@ map_emp=crop_map(map_emp; trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
 
-
-results = [null_models(example_species,
-                       geo_range,
-                       copy(dom_master),
-                       top, 
-                       ele_range,
-                       formated_rs,
-                       nrep,
-                       rs_std;
-                       bounded_dispersal=disp,
-                       range_coherence=cohe,
+results = [null_models(example_species,           # state name of example species
+                       geo_range,                 # grid cell ids comprising the species empirical range
+                       copy(dom_master),          # biogeographical domain
+                       top,                       # topographical raster
+                       ele_range,                 # data frame with the species' elevational range limits
+                       formated_rs,               # data frame with standardized range sizes (only used if rs_std=true)
+                       nrep,                      # number of repetitions
+                       rs_std;                    # should the null model use the standardized range size (true) or the empirical range size (false)
+                       bounded_dispersal=disp,    # true for bounded dispersal, false for free dispersal
+                       range_coherence=cohe,      # true for range coherence, false for patchy ranges 
                       ) 
                for disp in (false,true), cohe in (true,false)]
     
