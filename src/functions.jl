@@ -275,11 +275,10 @@ function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{B
     newcell
 end
 
-
 function crop_map(map;trim_map=true,crop_to_ext=nothing)
     if crop_to_ext === nothing
                 if trim_map
-                    map_nm=Rasters.trim(map,pad=10)
+                    map_nm=trim_raster(map,10)
                 end
             end
             if !(crop_to_ext === nothing)

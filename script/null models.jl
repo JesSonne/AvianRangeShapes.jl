@@ -36,6 +36,7 @@ map_emp=crop_map(map_emp; trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
 
+#### Running each of the four null models nrep times
 results = [null_models(example_species,           # state name of example species
                        geo_range,                 # grid cell ids comprising the species empirical range
                        copy(dom_master),          # biogeographical domain
@@ -48,7 +49,8 @@ results = [null_models(example_species,           # state name of example specie
                        range_coherence=cohe,      # true for range coherence, false for patchy ranges 
                       ) 
                for disp in (false,true), cohe in (true,false)]
-    
+
+#### Plotting the fist iteration of each model         
 maps=[compile_map(results[i,j][1],dom_master) for i in (1,2),j in (1,2)]
 maps=[crop_map(maps[i,j]; crop_to_ext=ex) for i in (1,2),j in (1,2)]
 plot([plot(res, title="Null model $i", ticks=false) for (i, res) in enumerate(maps)]..., layout=(2,2))
