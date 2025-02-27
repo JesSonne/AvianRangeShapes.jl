@@ -2,12 +2,11 @@ using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorpholo
 
 
    #filtering the geographic domain by the species elevational range limits     
-function update_dom_to_elevation!(dom, species, elv, top) 
-    if !(species in elv.Species)
+function update_dom_to_elevation!(dom, species, ele_range, top) 
+    if !(species in keys(ele_range))
         warn("No elevational range data found for $(species)")
     else
-        sp_elv_sub=elv[elv.Species.==species,:]
-        dom[top[Band=1] .> sp_elv_sub.Maximu_elevation .|| top[Band=2] .< sp_elv_sub.minimum_elevation] .= false
+        dom[top[Band=1] .> ele_range[species][2] .|| top[Band=2] .< ele_range[species][1]] .= false
     end
 end
 
@@ -78,79 +77,6 @@ function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
 
     output
 end
-    
-
-
-#the outward_facing function to run each null model
-function null_models(
-    species::String, # state name of example species
-    Anal_nam::String,# state which of the four null models (nm1,nm2,nm3, or nm4)
-    geo_range::Dict, #grid cell ids comprising the species empirical range
-    rs_std::Bool, # should the null model use the standardized range size (true) or the empirical range size (false)
-    dom_master::Any, #biogeographical domain
-    top::Any, #topographical raster
-    elv::Any, #data frame with the species' elevational range limits
-    formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
-    nrep::Int64 # nuber of repetitions
-    )
-
-    dom = copy(dom_master)
-    #filtering the geographic domain by the species elevational range limits     
-    if Anal_nam in ["nm2","nm4"]
-        update_dom_to_elevation!(dom, species, elv, top)
-    end
-
-    #list of grid cells outside the geographic domain
-    nas=findall(dom[:].==false) 
-
-    #empty raster object
-    zero=copy(dom);zero[:].=false
-
-    #grid cell ids comprising the species' empirical range
-    ab=geo_range[species]
-
-
-    #constructing raster of the species empirical range
-    emp=Float64.(dom)
-    emp.=NaN
-    emp[ab].=true
-    emp2= (!isnan).(emp)  
-
-    if Anal_nam in ["nm1","nm2"]
-        group_size=[length(ab)]
-        groups=[ab]
-    end
-
-    if Anal_nam in ["nm3","nm4"]
-        groups=find_groups(emp2,dom)
-        #extracting the size of each patch and the entire range
-        group_size=length.(groups)
-    end    
-
-    total_rangesize=sum(group_size)
-
-    ######### ## standardizing the range size frequency distribution
-    if rs_std
-        #if the standardized range size is smaller than the empirical, randomly subtract grid cells from the groups in stepwise fashion, weighted by the patch size
-        #i.e. large patches have greater chance of beeing modified by the standardization
-        new_range=formated_rs[formated_rs.nam.==species,:rank_range][1]
-        
-        update_group_size!(new_range,total_rangesize,group_size)    
-        println(group_size)
-
-        total_rangesize =new_range
-        ppo=findall(group_size.>0)
-        
-        group_size=group_size[ppo]
-
-        groups=groups[ppo]
-
-    end
-
-   Run_SpreadingDye(groups,group_size,dom,nrep,zero)
-end
-
-
 
 #Checking if selected grid cell is on the geographical domain
 on_domain(dom::AbstractMatrix{Bool}, point::Tuple{Int, Int}) = within_edges(dom, point) && dom[point...]
@@ -201,13 +127,8 @@ function join_neighbours(groups,dom;max_dist::Int64=5,min_prop::Float64=0.1)
     group_size_prop=group_size./maximum(group_size)
 
     ## convert raster ID's to matrix coordinates
-    point=Any[]
-    for t in 1:length(groups)
-        zz=copy(Float64.(dom));zz.=NaN;zz[groups[t]].=1;push!(point,Tuple.(collect(CartesianIndices(zz))[isfinite.(zz)]))
-    end
-
-    ###check if the following is faster than the above: point = [Tuple.(CartesianIndices[group]) for group in groups]
-
+    point = [Tuple.(CartesianIndices(dom)[group]) for group in groups]
+    
     #construct neigbborhood matrix
     dm=reldists(point)
     p = Set.(1:length(groups))
@@ -259,6 +180,76 @@ function find_edges(georange::AbstractMatrix{Bool}, dom::AbstractMatrix{Bool}, a
     )
 end
 
+#the outward_facing function to run each null model
+function null_models(
+    species::String, # state name of example species
+    geo_range::Dict, #grid cell ids comprising the species empirical range
+    dom_master::Any, #biogeographical domain
+    top::Any, #topographical raster
+    ele_range::Any, #data frame with the species' elevational range limits
+    formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
+    nrep::Int64, # nuber of repetitions
+    rs_std::Bool; # should the null model use the standardized range size (true) or the empirical range size (false)
+    bounded_dispersal::Bool, #true for bounded dispersal, false for free dispersal
+    range_coherence::Bool, #true for range coherence, false for patchy ranges 
+    )
+
+    dom = copy(dom_master)
+    #filtering the geographic domain by the species elevational range limits     
+    if bounded_dispersal
+        update_dom_to_elevation!(dom, species, ele_range, top)
+    end
+
+    #list of grid cells outside the geographic domain
+    nas=findall(dom[:].==false) 
+
+    #empty raster object
+    zero=copy(dom);zero[:].=false
+
+    #grid cell ids comprising the species' empirical range
+    ab=geo_range[species]
+
+
+    #constructing raster of the species empirical range
+    emp=Float64.(dom)
+    emp.=NaN
+    emp[ab].=true
+    emp2= (!isnan).(emp)  
+
+    if range_coherence
+        group_size=[length(ab)]
+        groups=[ab]
+    end
+
+    if !range_coherence
+        groups=find_groups(emp2,dom)
+        #extracting the size of each patch and the entire range
+        group_size=length.(groups)
+    end    
+
+    total_rangesize=sum(group_size)
+
+    ######### ## standardizing the range size frequency distribution
+    if rs_std
+        #if the standardized range size is smaller than the empirical, randomly subtract grid cells from the groups in stepwise fashion, weighted by the patch size
+        #i.e. large patches have greater chance of beeing modified by the standardization
+        new_range=formated_rs[formated_rs.nam.==species,:rank_range][1]
+        
+        update_group_size!(new_range,total_rangesize,group_size)    
+        println(group_size)
+
+        total_rangesize =new_range
+        ppo=findall(group_size.>0)
+        
+        group_size=group_size[ppo]
+
+        groups=groups[ppo]
+
+    end
+
+   Run_SpreadingDye(groups,group_size,dom,nrep,zero)
+end
+
 function expand_spreading(georange::AbstractMatrix{Bool}, add_cells::Int, dom::AbstractMatrix{Bool}; algo::Symbol = :rook)
     edges = find_edges(georange, dom, algo)
     for i in 1:add_cells
@@ -284,19 +275,47 @@ function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{B
     newcell
 end
 
-function prep_map(res_nm,dom=dd;trim_map=true,crop_to_ext=nothing)
-    map_nm=copy(dom)
-    map_nm[:].=NaN
-    map_nm[res_nm].=1
+
+function crop_map(map;trim_map=true,crop_to_ext=nothing)
     if crop_to_ext === nothing
-        if trim_map
-            map_nm=Rasters.trim(map_nm,pad=10)
-        end
+                if trim_map
+                    map_nm=Rasters.trim(map,pad=10)
+                end
+            end
+            if !(crop_to_ext === nothing)
+                map_nm = Rasters.crop(map; to=crop_to_ext)
     end
-    if !(crop_to_ext === nothing)
-        map_nm = Rasters.crop(map_nm, to=crop_to_ext)
-    end
-    plot(map_nm)
+   map_nm 
+end
+
+
+function compile_map(res_nm,dom=dd)
+    map_nm=copy(dom)
+    map_nm[:].=0
+    map_nm[res_nm].=1
     map_nm
 end
 
+function trim_raster(r::AbstractMatrix{Bool}, pad::Int=0)
+    # Find row indices with at least one true value.
+    row_indices = findall(row -> any(row), eachrow(r))
+    # Find column indices with at least one true value.
+    col_indices = findall(col -> any(col), eachcol(r))
+    
+    # If no true values exist, return an empty array.
+    if isempty(row_indices) || isempty(col_indices)
+        return similar(r, 0, 0)
+    end
+    
+    # Determine the raw bounds.
+    row_min, row_max = minimum(row_indices), maximum(row_indices)
+    col_min, col_max = minimum(col_indices), maximum(col_indices)
+    
+    # Expand the bounds by the specified padding, ensuring they remain within the raster.
+    row_min_p = max(1, row_min - pad)
+    row_max_p = min(size(r, 1), row_max + pad)
+    col_min_p = max(1, col_min - pad)
+    col_max_p = min(size(r, 2), col_max + pad)
+    
+    return r[row_min_p:row_max_p, col_min_p:col_max_p]
+end

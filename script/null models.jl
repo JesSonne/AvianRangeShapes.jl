@@ -32,74 +32,25 @@ nrep=10 # nuber of repetitions
 #### empirical range
 map_emp = falses(dims(dom_master))
 map_emp[geo_range[example_species]] .= true
-map_emp=prep_map(geo_range[example_species],trim_map=true)
+map_emp=crop_map(map_emp; trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
 
-#### running null model 1
-res_nm1=null_models(example_species, # state name of example species
-                    "nm1",# state which of the four null models (nm1,nm2,nm3, or nm4)
-                    geo_range, #grid cell ids comprising the species empirical range
-                    rs_std, # should the null model use the standardized range size (true) or the empirical range size (false)
-                    copy(dom_master), #biogeographical domain
-                    top, #topographical raster
-                    elv, #data frame with the species' elevational range limits (only used in null model nm2 and nm4)
-                    formated_rs, #data frame with standardized range sizes (only used if rs_std=true)
-                    nrep # nuber of repetitions
-                    ; patchy_ranges = false, bounded_dispersal = false)
 
-#plotting results from the null model iteration
-m1=prep_map(res_nm1[1],crop_to_ext=ex)
-plot(m1)
+results = [null_models(example_species,
+                       geo_range,
+                       copy(dom_master),
+                       top, 
+                       ele_range,
+                       formated_rs,
+                       nrep,
+                       rs_std;
+                       bounded_dispersal=disp,
+                       range_coherence=cohe,
+                      ) 
+               for disp in (false,true), cohe in (true,false)]
+    
+maps=[compile_map(results[i,j][1],dom_master) for i in (1,2),j in (1,2)]
+maps=[crop_map(maps[i,j]; crop_to_ext=ex) for i in (1,2),j in (1,2)]
+plot([plot(res, title="Null model $i", ticks=false) for (i, res) in enumerate(maps)]..., layout=(2,2))
 
-
-#### running null model 2
-res_nm2=null_models(example_species, 
-                    "nm2",
-                    geo_range, 
-                    rs_std, 
-                    copy(dom_master), 
-                    top,
-                    elv, 
-                    formated_rs, 
-                    nrep
-                    )
-
-#plotting results from the null model iteration
-m2=prep_map(res_nm2[1],crop_to_ext=ex)
-plot(m2)
-
-
-#### running null model 3
-res_nm3=null_models(example_species, 
-                    "nm3",
-                    geo_range, 
-                    rs_std, 
-                    copy(dom_master), 
-                    top,
-                    elv, 
-                    formated_rs, 
-                    nrep
-                    )
-#plotting results from the null model iteration
-m3=prep_map(res_nm3[1],crop_to_ext=ex)
-plot(m3)
-
-
-#### running null model 4
-@btime res_nm4=null_models(example_species, 
-                    "nm4",
-                    geo_range, 
-                    rs_std, 
-                    copy(dom_master), 
-                    top,
-                    elv, 
-                    formated_rs, 
-                    1
-                    )
- #plotting results from the null model iteration
- 
- 
- m4=prep_map(res_nm4[1],crop_to_ext=ex)
- plot(first(res_nm4))
- 
