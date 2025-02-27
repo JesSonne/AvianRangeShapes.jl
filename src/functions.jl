@@ -1,4 +1,4 @@
-using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters,Images
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
 
 
    #filtering the geographic domain by the species elevational range limits     
@@ -12,7 +12,7 @@ function update_dom_to_elevation!(dom, species, elv, top)
 end
 
 #Identify groups of isolated range patches 
-function find_groups(emp2,
+function find_groups(emp2,dom,
     max_dist=5, #minimum patch size relative to the species’ largest patch 
     min_prop=0.1) #minimum distance between range patches) 
    
@@ -21,7 +21,7 @@ function find_groups(emp2,
    groups=groups[findall(length.(groups).>0)]
 
    #### algorithm treating tiny range patches as extensions of the agacent larger coherent range rather than independent range patches
-   groups=join_neighbours(groups; 
+   groups=join_neighbours(groups,dom; 
    max_dist, #minimum patch size relative to the species’ largest patch 
    min_prop) #minimum distance between range patches
 
@@ -66,7 +66,8 @@ function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
         end
 
         #checking for overlaps in the simulated range patches (i.e. if simulated range size is less than the empirical) 
-        rs_check=total_rangesize-count(ids)
+        ids=findall(sd_out[:])
+        rs_check=total_rangesize-length(ids)
 
         if rs_check > 0
             sd_out=expand_spreading(sd_out,rs_check,dom)
@@ -121,7 +122,7 @@ function null_models(
     end
 
     if Anal_nam in ["nm3","nm4"]
-        groups=find_groups(emp2)
+        groups=find_groups(emp2,dom)
         #extracting the size of each patch and the entire range
         group_size=length.(groups)
     end    
@@ -158,7 +159,6 @@ within_edges(dom::AbstractMatrix, point::Tuple{Int, Int}) = min(point...) > 0 &&
 #compute the number of isolated range patches along with the patches' grid cell ids    
 function collect_groups(emp2)
     labels = label_components(emp2,strel_box((3, 3))) # queen style neighbourhood
-    labels[nas].=0 
     groups = [Int[] for i = 1:maximum(labels)]
     for (i,l) in enumerate(labels)
         if l != 0
@@ -194,7 +194,7 @@ end
 
 
 #parameters: maximum distance between patches and minimum percentage size of patches
-function join_neighbours(groups;max_dist::Int64=5,min_prop::Float64=0.1)
+function join_neighbours(groups,dom;max_dist::Int64=5,min_prop::Float64=0.1)
     #organizing patch groups
     groups=sort(groups, by = length, rev = true)
     group_size=length.(groups)
@@ -205,6 +205,8 @@ function join_neighbours(groups;max_dist::Int64=5,min_prop::Float64=0.1)
     for t in 1:length(groups)
         zz=copy(Float64.(dom));zz.=NaN;zz[groups[t]].=1;push!(point,Tuple.(collect(CartesianIndices(zz))[isfinite.(zz)]))
     end
+
+    ###check if the following is faster than the above: point = [Tuple.(CartesianIndices[group]) for group in groups]
 
     #construct neigbborhood matrix
     dm=reldists(point)
@@ -297,3 +299,4 @@ function prep_map(res_nm,dom=dd;trim_map=true,crop_to_ext=nothing)
     plot(map_nm)
     map_nm
 end
+
