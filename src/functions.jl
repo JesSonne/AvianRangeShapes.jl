@@ -1,6 +1,74 @@
 using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
 
 
+# ——————————————————————————————————————————————
+# 3) Edge‐on‐segment test
+function point_on_edge(x, y, x1, y1, x2, y2; tol=1e-10)
+    # collinearity?
+    if abs((x2-x1)*(y-y1) - (y2-y1)*(x-x1)) > tol
+        return false
+    end
+    # within bounding box?
+    if x < min(x1,x2)-tol || x > max(x1,x2)+tol ||
+       y < min(y1,y2)-tol || y > max(y1,y2)+tol
+        return false
+    end
+    return true
+end
+
+function points_outside_hull(hull_pts::AbstractMatrix{<:Real},
+                              query_pts::AbstractMatrix{<:Union{Real,Missing}};
+                              tol::Real=1e-8)
+
+    # build and close the polygon
+    hidx   = convex_hull_indices(hull_pts)
+    px     = hull_pts[hidx, 1]
+    py     = hull_pts[hidx, 2]
+    px_c   = [px; px[1]]
+    py_c   = [py; py[1]]
+
+    # for fast vertex‐lookup
+    vertset = Set(zip(px, py))
+
+    M = size(query_pts, 1)
+    out = Vector{Union{Bool,Missing}}(undef, M)
+
+    for k in 1:M
+        row = query_pts[k, :]
+        if any(ismissing, row)
+            out[k] = missing
+            continue
+        end
+        x, y = row[1], row[2]
+
+        # 1) exact vertex?
+        if (x,y) in vertset
+            out[k] = false
+            continue
+        end
+
+        # 2) on any edge?
+        hit_edge = false
+        for i in 1:length(px)
+            if point_on_edge(x, y, px_c[i], py_c[i], px_c[i+1], py_c[i+1]; tol=tol)
+                out[k] = false
+                hit_edge = true
+                break
+            end
+        end
+        if hit_edge
+            continue
+        end
+
+        # 3) ray‐casting
+        inside = point_in_polygon(x, y, px, py)
+        out[k] = !inside
+    end
+
+    return out
+end
+
+
    #filtering the geographic domain by the species elevational range limits     
 function update_dom_to_elevation!(dom, species, ele_range, top) 
     if !(species in keys(ele_range))
@@ -8,6 +76,18 @@ function update_dom_to_elevation!(dom, species, ele_range, top)
     else
         dom[top[Band=1] .> ele_range[species][2] .|| top[Band=2] .< ele_range[species][1]] .= false
     end
+end
+
+function update_dom_to_climate_volume!(dom, species, r1,r2,r3,r4) 
+    if length(ab)>10
+        cl=clim_mat[ab,1:2]
+        out = points_outside_hull(cl, clim_mat[:,1:2])
+        dom[findall(out)].=false
+    
+        cl=clim_mat[ab,3:4]
+        out = points_outside_hull(cl, clim_mat[:,3:4])
+        dom[findall(out)].=false
+     end
 end
 
 #Identify groups of isolated range patches 
@@ -198,6 +278,7 @@ function null_models(
     #filtering the geographic domain by the species elevational range limits     
     if bounded_dispersal
         update_dom_to_elevation!(dom, species, ele_range, top)
+        update_dom_to_climate_volume!(dom,species,r1,r2,r3,r4)
     end
 
     #list of grid cells outside the geographic domain
