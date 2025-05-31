@@ -78,7 +78,7 @@ function update_dom_to_elevation!(dom, species, ele_range, top)
     end
 end
 
-function update_dom_to_climate_volume!(dom, species, r1,r2,r3,r4) 
+function update_dom_to_climate_volume!(dom, ab, clim_mat) 
     if length(ab)>10
         cl=clim_mat[ab,1:2]
         out = points_outside_hull(cl, clim_mat[:,1:2])
@@ -267,6 +267,7 @@ function null_models(
     dom_master::Any, #biogeographical domain
     top::Any, #topographical raster
     ele_range::Any, #data frame with the species' elevational range limits
+    clim_mat::Any #raster stack with climate variables   
     formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64, # nuber of repetitions
     rs_std::Bool; # should the null model use the standardized range size (true) or the empirical range size (false)
@@ -278,7 +279,6 @@ function null_models(
     #filtering the geographic domain by the species elevational range limits     
     if bounded_dispersal
         update_dom_to_elevation!(dom, species, ele_range, top)
-        update_dom_to_climate_volume!(dom,species,r1,r2,r3,r4)
     end
 
     #list of grid cells outside the geographic domain
@@ -290,7 +290,9 @@ function null_models(
     #grid cell ids comprising the species' empirical range
     ab=geo_range[species]
 
-
+    if bounded_dispersal
+        update_dom_to_climate_volume!(dom,ab,clim_mat)
+    end
     #constructing raster of the species empirical range
     emp=Float64.(dom)
     emp.=NaN
