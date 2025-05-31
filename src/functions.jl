@@ -1,6 +1,36 @@
 using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
 
 
+function convex_hull_indices(pts::AbstractMatrix{<:Real})
+    N = size(pts,1)
+    # helper to compute cross((B−A)×(C−A))
+    cross(o,i,j) = (pts[i,1]-pts[o,1])*(pts[j,2]-pts[o,2]) -
+                   (pts[i,2]-pts[o,2])*(pts[j,1]-pts[o,1])
+
+    # sort point‐indices by x, then y
+    idx = sort(1:N, by=i->(pts[i,1], pts[i,2]))
+
+    lower = Int[]
+    for i in idx
+        while length(lower) ≥ 2 && cross(lower[end-1], lower[end], i) ≤ 0
+            pop!(lower)
+        end
+        push!(lower, i)
+    end
+
+    upper = Int[]
+    for i in reverse(idx)
+        while length(upper) ≥ 2 && cross(upper[end-1], upper[end], i) ≤ 0
+            pop!(upper)
+        end
+        push!(upper, i)
+    end
+
+    # drop last element of each (it's the start of the other list)  
+    pop!(lower); pop!(upper)
+    return vcat(lower, upper)
+end
+
 # ——————————————————————————————————————————————
 # 3) Edge‐on‐segment test
 function point_on_edge(x, y, x1, y1, x2, y2; tol=1e-10)
