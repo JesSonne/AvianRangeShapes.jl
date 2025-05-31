@@ -1,5 +1,24 @@
 using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
 
+# ——————————————————————————————————————————————
+# 2) point_in_polygon via ray‐casting
+function point_in_polygon(x::Real, y::Real, poly_x::AbstractVector{<:Real},
+                                          poly_y::AbstractVector{<:Real})::Bool
+    inside = false
+    n = length(poly_x)
+    j = n
+    for i in 1:n
+        yi, yj = poly_y[i], poly_y[j]
+        xi, xj = poly_x[i], poly_x[j]
+        if ( (yi > y) != (yj > y) ) &&
+           ( x < (xj - xi)*(y - yi)/(yj - yi) + xi )
+            inside = !inside
+        end
+        j = i
+    end
+    return inside
+end
+
 
 function convex_hull_indices(pts::AbstractMatrix{<:Real})
     N = size(pts,1)
