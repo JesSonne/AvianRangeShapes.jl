@@ -267,7 +267,7 @@ function null_models(
     dom_master::Any, #biogeographical domain
     top::Any, #topographical raster
     ele_range::Any, #data frame with the species' elevational range limits
-    clim_mat::Any #raster stack with climate variables   
+    clim_mat::Any, #raster stack with climate variables   
     formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64, # nuber of repetitions
     rs_std::Bool; # should the null model use the standardized range size (true) or the empirical range size (false)
