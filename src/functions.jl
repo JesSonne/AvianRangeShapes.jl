@@ -121,7 +121,7 @@ end
    #filtering the geographic domain by the species elevational range limits     
 function update_dom_to_elevation!(dom, species, ele_range, top) 
     if !(species in keys(ele_range))
-        warn("No elevational range data found for $(species)")
+        @warn("No elevational range data found for $(species)")
     else
         dom[top[Band=1] .> ele_range[species][2] .|| top[Band=2] .< ele_range[species][1]] .= false
     end
