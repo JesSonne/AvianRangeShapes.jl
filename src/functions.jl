@@ -1,4 +1,4 @@
-using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology, GeometryOps
 
 # ——————————————————————————————————————————————
 # 2) point_in_polygon via ray‐casting
