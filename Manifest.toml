@@ -35,12 +35,6 @@ git-tree-sha1 = "9876e1e164b144ca45e9e3198d0b689cadfed9ff"
 uuid = "66dad0bd-aa9a-41b7-9441-69ab47430ed8"
 version = "1.1.3"
 
-[[deps.GeometryOps]]
-deps = ["AbstractTrees", "AdaptivePredicates", "CoordinateTransformations", "DataAPI", "DelaunayTriangulation", "ExactPredicates", "Extents", "GeoFormatTypes", "GeoInterface", "GeometryBasics", "GeometryOpsCore", "LinearAlgebra", "SortTileRecursiveTree", "Statistics", "Tables"]
-git-tree-sha1 = "0ef3aa2051ea44e00121af7afbce057e84b72715"
-uuid = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
-version = "0.1.23"
-
 [[deps.ArchGDAL]]
 deps = ["CEnum", "ColorTypes", "Dates", "DiskArrays", "Extents", "GDAL", "GeoFormatTypes", "GeoInterface", "GeoInterfaceMakie", "GeoInterfaceRecipes", "ImageCore", "Tables"]
 git-tree-sha1 = "706bc126751ce5468cb2b31b5620eb765a3275cf"
@@ -523,6 +517,12 @@ deps = ["EarCut_jll", "Extents", "GeoInterface", "IterTools", "LinearAlgebra", "
 git-tree-sha1 = "3ba0e2818cc2ff79a5989d4dca4bc63120a98bd9"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 version = "0.5.5"
+
+[[deps.GeometryOpsCore]]
+deps = ["DataAPI", "GeoInterface", "Tables"]
+git-tree-sha1 = "390a7ff6a89a997d6a1fa76c857490e0bd34565f"
+uuid = "05efe853-fabf-41c8-927e-7063c8b9f013"
+version = "0.1.2"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
