@@ -524,12 +524,6 @@ git-tree-sha1 = "3ba0e2818cc2ff79a5989d4dca4bc63120a98bd9"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 version = "0.5.5"
 
-[[deps.GeometryOpsCore]]
-deps = ["DataAPI", "GeoInterface", "Tables"]
-git-tree-sha1 = "390a7ff6a89a997d6a1fa76c857490e0bd34565f"
-uuid = "05efe853-fabf-41c8-927e-7063c8b9f013"
-version = "0.1.2"
-
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "9b02998aba7bf074d14de89f9d37ca24a1a0b046"
