@@ -49,7 +49,7 @@ results = [null_models(example_species,           # state name of example specie
                        copy(dom_master),          # biogeographical domain
                        top,                       # topographical raster
                        ele_range,                 # data frame with the species' elevational range limits
-                       clim_mat                   # Vector climate data stores as a two dimentional Tuble 
+                       clim_mat,                  # Vector climate data stores as a two dimentional Tuble 
                        formated_rs,               # data frame with standardized range sizes (only used if rs_std=true)
                        nrep,                      # number of repetitions
                        rs_std;                    # should the null model use the standardized range size (true) or the empirical range size (false)
