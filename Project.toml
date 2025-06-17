@@ -15,6 +15,7 @@ Rasters = "a3a2b9e3-a471-40c9-b274-f788e487c689"
 SkipNan = "aed68c70-c8b0-4309-8cd1-d392a74f991a"
 SpreadingDye = "d2fc507f-b8c3-4645-b292-ec755ef5f34e"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
 
 [compat]
 julia = "1.6.7"
