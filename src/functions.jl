@@ -1,123 +1,5 @@
 using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology, GeometryOps
 
-# ——————————————————————————————————————————————
-# 2) point_in_polygon via ray‐casting
-function point_in_polygon(x::Real, y::Real, poly_x::AbstractVector{<:Real},
-                                          poly_y::AbstractVector{<:Real})::Bool
-    inside = false
-    n = length(poly_x)
-    j = n
-    for i in 1:n
-        yi, yj = poly_y[i], poly_y[j]
-        xi, xj = poly_x[i], poly_x[j]
-        if ( (yi > y) != (yj > y) ) &&
-           ( x < (xj - xi)*(y - yi)/(yj - yi) + xi )
-            inside = !inside
-        end
-        j = i
-    end
-    return inside
-end
-
-
-function convex_hull_indices(pts::AbstractMatrix{<:Real})
-    N = size(pts,1)
-    # helper to compute cross((B−A)×(C−A))
-    cross(o,i,j) = (pts[i,1]-pts[o,1])*(pts[j,2]-pts[o,2]) -
-                   (pts[i,2]-pts[o,2])*(pts[j,1]-pts[o,1])
-
-    # sort point‐indices by x, then y
-    idx = sort(1:N, by=i->(pts[i,1], pts[i,2]))
-
-    lower = Int[]
-    for i in idx
-        while length(lower) ≥ 2 && cross(lower[end-1], lower[end], i) ≤ 0
-            pop!(lower)
-        end
-        push!(lower, i)
-    end
-
-    upper = Int[]
-    for i in reverse(idx)
-        while length(upper) ≥ 2 && cross(upper[end-1], upper[end], i) ≤ 0
-            pop!(upper)
-        end
-        push!(upper, i)
-    end
-
-    # drop last element of each (it's the start of the other list)  
-    pop!(lower); pop!(upper)
-    return vcat(lower, upper)
-end
-
-# ——————————————————————————————————————————————
-# 3) Edge‐on‐segment test
-function point_on_edge(x, y, x1, y1, x2, y2; tol=1e-10)
-    # collinearity?
-    if abs((x2-x1)*(y-y1) - (y2-y1)*(x-x1)) > tol
-        return false
-    end
-    # within bounding box?
-    if x < min(x1,x2)-tol || x > max(x1,x2)+tol ||
-       y < min(y1,y2)-tol || y > max(y1,y2)+tol
-        return false
-    end
-    return true
-end
-
-function points_outside_hull(hull_pts::AbstractMatrix{<:Real},
-                              query_pts::AbstractMatrix{<:Union{Real,Missing}};
-                              tol::Real=1e-8)
-
-    # build and close the polygon
-    hidx   = convex_hull_indices(hull_pts)
-    px     = hull_pts[hidx, 1]
-    py     = hull_pts[hidx, 2]
-    px_c   = [px; px[1]]
-    py_c   = [py; py[1]]
-
-    # for fast vertex‐lookup
-    vertset = Set(zip(px, py))
-
-    M = size(query_pts, 1)
-    out = Vector{Union{Bool,Missing}}(undef, M)
-
-    for k in 1:M
-        row = query_pts[k, :]
-        if any(ismissing, row)
-            out[k] = missing
-            continue
-        end
-        x, y = row[1], row[2]
-
-        # 1) exact vertex?
-        if (x,y) in vertset
-            out[k] = false
-            continue
-        end
-
-        # 2) on any edge?
-        hit_edge = false
-        for i in 1:length(px)
-            if point_on_edge(x, y, px_c[i], py_c[i], px_c[i+1], py_c[i+1]; tol=tol)
-                out[k] = false
-                hit_edge = true
-                break
-            end
-        end
-        if hit_edge
-            continue
-        end
-
-        # 3) ray‐casting
-        inside = point_in_polygon(x, y, px, py)
-        out[k] = !inside
-    end
-
-    return out
-end
-
-
    #filtering the geographic domain by the species elevational range limits     
 function update_dom_to_elevation!(dom, species, ele_range, top) 
     if !(species in keys(ele_range))
@@ -129,13 +11,12 @@ end
 
 function update_dom_to_climate_volume!(dom, ab, clim_mat) 
     if length(ab)>10
-        cl=clim_mat[ab,1:2]
-        out = points_outside_hull(cl, clim_mat[:,1:2])
-        dom[findall(out)].=false
-    
-        cl=clim_mat[ab,3:4]
-        out = points_outside_hull(cl, clim_mat[:,3:4])
-        dom[findall(out)].=false
+        for x in 1:length(clim_mat)
+            cl=clim_mat[x][ab]
+            hull = GeometryOps.convex_hull(cl)
+            outside=.!GeometryOps.covers.(Ref(hull), clim_mat[x])
+            dom[findall(outside)].=false
+        end
      end
 end
 
