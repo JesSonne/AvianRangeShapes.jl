@@ -1,4 +1,4 @@
-using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology, GeometryOps
 
    #filtering the geographic domain by the species elevational range limits     
 function update_dom_to_elevation!(dom, species, ele_range, top) 
