@@ -11,13 +11,24 @@ end
 
 function update_dom_to_climate_volume!(dom, ab, clim_mat) 
     if length(ab)>10
+        vdom = vec(dom)
         for x in 1:length(clim_mat)
             cl=clim_mat[x][ab]
             hull = GeometryOps.convex_hull(cl)
-            outside=.!GeometryOps.covers.(Ref(hull), clim_mat[x])
-            dom[findall(outside)].=false
+            broadcast!(vdom, vdom, clim_mat[x]) do d, c
+                if d
+                     if any(map(ismissing, c))
+                            return false
+                     else
+                            return GeometryOps.covers(hull, c)
+                     end
+                else
+                    return false
+                end
+            end
         end
      end
+     return dom
 end
 
 #Identify groups of isolated range patches 
@@ -197,7 +208,7 @@ function null_models(
     dom_master::Any, #biogeographical domain
     top::Any, #topographical raster
     ele_range::Any, #data frame with the species' elevational range limits
-    clim_mat::Any, #raster stack with climate variables   
+    clim_mat::Any, # Vector climate data stores as a two dimentional Tuble   
     formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64, # nuber of repetitions
     rs_std::Bool; # should the null model use the standardized range size (true) or the empirical range size (false)

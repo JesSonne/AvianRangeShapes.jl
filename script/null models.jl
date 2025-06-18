@@ -43,6 +43,7 @@ map_emp=crop_map(map_emp; trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
 
+
 #### Running each of the four null models nrep times
 results = [null_models(example_species,           # state name of example species
                        geo_range,                 # grid cell ids comprising the species empirical range
