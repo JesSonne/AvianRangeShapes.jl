@@ -23,6 +23,13 @@ geo_range = Dict(zip(nam, dis_elv))
 #loading standardized range sizes
 formated_rs=load_object("data/standardized_range_sizes.jld2")
 
+#loading climate data
+r1 = Raster("data/clim1.tif")
+r2 = Raster("data/clim4.tif")
+r3 = Raster("data/clim12.tif")
+r4 = Raster("data/clim15.tif")
+clim_mat=[collect(zip(r1[:],r2[:])),collect(zip(r3[:],r4[:]))]
+
 ############################ run the null model 
 
 example_species="Phlogophilus harterti" # name of one of the example species from the nam object
@@ -36,12 +43,14 @@ map_emp=crop_map(map_emp; trim_map=true)
 ex=ArchGDAL.extent(map_emp)
 plot(map_emp)
 
+
 #### Running each of the four null models nrep times
 results = [null_models(example_species,           # state name of example species
                        geo_range,                 # grid cell ids comprising the species empirical range
                        copy(dom_master),          # biogeographical domain
                        top,                       # topographical raster
                        ele_range,                 # data frame with the species' elevational range limits
+                       clim_mat,                  # Vector climate data stores as a two dimentional Tuble 
                        formated_rs,               # data frame with standardized range sizes (only used if rs_std=true)
                        nrep,                      # number of repetitions
                        rs_std;                    # should the null model use the standardized range size (true) or the empirical range size (false)

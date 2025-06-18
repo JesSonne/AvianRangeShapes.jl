@@ -1,13 +1,34 @@
-using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology
-
+using SpreadingDye, NearestNeighbors, SkipNan, StatsBase, Rasters, ImageMorphology, GeometryOps
 
    #filtering the geographic domain by the species elevational range limits     
 function update_dom_to_elevation!(dom, species, ele_range, top) 
     if !(species in keys(ele_range))
-        warn("No elevational range data found for $(species)")
+        @warn("No elevational range data found for $(species)")
     else
         dom[top[Band=1] .> ele_range[species][2] .|| top[Band=2] .< ele_range[species][1]] .= false
     end
+end
+
+function update_dom_to_climate_volume!(dom, ab, clim_mat) 
+    if length(ab)>10
+        vdom = vec(dom)
+        for x in 1:length(clim_mat)
+            cl=clim_mat[x][ab]
+            hull = GeometryOps.convex_hull(cl)
+            broadcast!(vdom, vdom, clim_mat[x]) do d, c
+                if d
+                     if any(map(ismissing, c))
+                            return false
+                     else
+                            return GeometryOps.covers(hull, c)
+                     end
+                else
+                    return false
+                end
+            end
+        end
+     end
+     return dom
 end
 
 #Identify groups of isolated range patches 
@@ -187,6 +208,7 @@ function null_models(
     dom_master::Any, #biogeographical domain
     top::Any, #topographical raster
     ele_range::Any, #data frame with the species' elevational range limits
+    clim_mat::Any, # Vector climate data stores as a two dimentional Tuble   
     formated_rs::Any, #data frame with standardized range sizes (only used if rs_std=true)
     nrep::Int64, # nuber of repetitions
     rs_std::Bool; # should the null model use the standardized range size (true) or the empirical range size (false)
@@ -209,7 +231,9 @@ function null_models(
     #grid cell ids comprising the species' empirical range
     ab=geo_range[species]
 
-
+    if bounded_dispersal
+        update_dom_to_climate_volume!(dom,ab,clim_mat)
+    end
     #constructing raster of the species empirical range
     emp=Float64.(dom)
     emp.=NaN
