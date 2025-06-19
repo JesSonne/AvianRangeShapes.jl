@@ -90,7 +90,7 @@ function Run_SpreadingDye(groups,group_size,dom,nrep,zero)
         rs_check=total_rangesize-length(ids)
 
         if rs_check > 0
-            sd_out=expand_spreading(sd_out,rs_check,dom)
+            sd_out=SpreadingDye.expand_spreading!(sd_out,rs_check,dom)
         end    
         ids=findall(sd_out[:])
         push!(output,ids)     
@@ -272,31 +272,6 @@ function null_models(
     end
 
    Run_SpreadingDye(groups,group_size,dom,nrep,zero)
-end
-
-function expand_spreading(georange::AbstractMatrix{Bool}, add_cells::Int, dom::AbstractMatrix{Bool}; algo::Symbol = :rook)
-    edges = find_edges(georange, dom, algo)
-    for i in 1:add_cells
-        grow!(georange, edges, dom, algo)
-    end
-    georange
-end
-
-function grow!(georange::AbstractMatrix{Bool}, edges::Set, dom::AbstractMatrix{Bool}, algo::Symbol; ignore_domain = false)
-    newcell = isempty(edges) ? pick_random(georange) : first(rand(edges))
-    while georange[newcell...]
-        isempty(edges) && push!(edges, jump(georange, dom, algo)) # allows for patchy ranges
-        edge, newcell = rand(edges)
-        pop!(edges, (edge, newcell))
-    end
-    georange[newcell...] = true
-    for nb in algos[algo]
-        neighbor = newcell .+ nb
-        if within_edges(dom, neighbor) && (ignore_domain || dom[neighbor...]) && !georange[neighbor...]
-            push!(edges, (newcell, neighbor))
-        end
-    end
-    newcell
 end
 
 function crop_map(map;trim_map=true,crop_to_ext=nothing)
